@@ -271,15 +271,16 @@
   }
 
   function grade(q) {
-    if (q >= 90) return ["A+", "#34d399"];
-    if (q >= 80) return ["A", "#34d399"];
-    if (q >= 70) return ["B+", "#22d3ee"];
-    if (q >= 60) return ["B", "#22d3ee"];
-    if (q >= 50) return ["C+", "#fbbf24"];
-    if (q >= 40) return ["C", "#fbbf24"];
-    return ["D", "#f87171"];
+    const ink = "var(--ink)", low = "var(--accent)";
+    if (q >= 90) return ["A+", ink];
+    if (q >= 80) return ["A", ink];
+    if (q >= 70) return ["B+", ink];
+    if (q >= 60) return ["B", ink];
+    if (q >= 50) return ["C+", ink];
+    if (q >= 40) return ["C", low];
+    return ["D", low];
   }
-  const barColor = (v) => (v >= 75 ? "#34d399" : v >= 55 ? "#22d3ee" : v >= 40 ? "#fbbf24" : "#f87171");
+  const barColor = (v) => (v >= 50 ? "var(--ink)" : "var(--accent)");
 
   function insights(r) {
     const out = [];
@@ -405,7 +406,7 @@
   }
   function badge(def) {
     const id = Object.keys(PLATFORMS).find((k) => PLATFORMS[k] === def);
-    return `<span class="p-badge ${def.dark ? "dark" : ""}" style="background:${def.bg || def.color}" title="${def.name}">${logo(id) || def.short}</span>`;
+    return `<span class="p-badge" title="${def.name}">${logo(id) || def.short}</span>`;
   }
 
   function renderChips() {
@@ -504,8 +505,8 @@
     profileCur = profile;
     currency = profile.currency || "USD";
     $("#d-currency").value = currency;
-    $("#d-greeting").textContent = `Hey ${(profile.name || "creator").split(" ")[0]} 👋`;
-    $("#d-subtitle").textContent = `${profile.platforms.length} platform${profile.platforms.length > 1 ? "s" : ""} · ${NICHES[profile.niche]?.[0] || "Creator"} · ${profile.tier1}% Tier-1 audience`;
+    $("#d-greeting").textContent = profile.name || "Creator";
+    $("#d-subtitle").textContent = `${NICHES[profile.niche]?.[0] || "Creator"} · ${profile.platforms.length} platform${profile.platforms.length > 1 ? "s" : ""} · ${profile.tier1}% Tier-1 audience`;
     show("dashboard");
     render();
   }
@@ -551,7 +552,7 @@
     rollIn($("#k-yearly"), r.yearlyReach, (v) => fmtCompact(v, 2));
     rollIn($("#k-er"), r.er * 100, (v) => v.toFixed(2) + "%");
     $("#k-monthly-note").textContent = r.followers ? `${(r.monthlyReach / r.followers).toFixed(1)}x your total audience` : "";
-    $("#k-er-note").textContent = r.erBench ? `benchmark ${(r.erBench * 100).toFixed(1)}%: ${r.er >= r.erBench ? "above ✅" : "below ⚠️"}` : "";
+    $("#k-er-note").textContent = r.erBench ? `${r.er >= r.erBench ? "above" : "below"} the ${(r.erBench * 100).toFixed(1)}% benchmark` : "";
 
     // ---- Quality ----
     const [g, gColor] = grade(r.quality);
@@ -588,7 +589,7 @@
       ["Annual ambassador", r.annual, r.annual * 1.2, "12 months + exclusivity"],
     ];
     $("#packages").innerHTML = pk.map(([n, , , d], i) =>
-      `<div class="package ${i === 1 ? "featured" : ""}"><div class="p-name">${n}</div><div class="odo-md" id="pk-${i}"></div><div class="p-desc">${d}</div></div>`).join("");
+      `<div class="package ${i === 1 ? "featured" : ""}"><div class="p-name">${n}</div><div class="num-md" id="pk-${i}"></div><div class="p-desc">${d}</div></div>`).join("");
     pk.forEach(([, lo], i) => rollIn($("#pk-" + i), lo, (v) => money(v, true)));
 
     updateEarnings(r);
@@ -631,25 +632,22 @@
       grid += `<line class="gridline" x1="${P.l}" x2="${W - P.r}" y1="${y(v)}" y2="${y(v)}"/><text class="axis" x="${P.l - 8}" y="${y(v) + 4}" text-anchor="end">${fmtCompact(v)}</text>`;
     }
     const xl = months.map((m, i) => (i % 2 === 0 ? `<text class="axis" x="${x(i)}" y="${H - 8}" text-anchor="middle">${m}</text>` : "")).join("");
-    const defs = `<defs>
-      <linearGradient id="lineGrad" x1="0" x2="1"><stop offset="0" stop-color="#7c5cff"/><stop offset=".6" stop-color="#ff4fa3"/><stop offset="1" stop-color="#22d3ee"/></linearGradient>
-      <linearGradient id="areaGrad" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#7c5cff" stop-opacity=".35"/><stop offset="1" stop-color="#7c5cff" stop-opacity="0"/></linearGradient>
-    </defs>`;
+    const defs = "";
     let body;
     if (mode === "followers") {
       const pts = data.map((v, i) => `${x(i)},${y(v)}`);
-      body = `<path d="M${pts.join(" L")} L${x(12)},${H - P.b} L${x(0)},${H - P.b} Z" fill="url(#areaGrad)"/>
+      body = `<path d="M${pts.join(" L")} L${x(12)},${H - P.b} L${x(0)},${H - P.b} Z" class="area"/>
         <path class="line draw" d="M${pts.join(" L")}"/>
-        <circle class="dot" cx="${x(12)}" cy="${y(data[12])}" r="5"/>
+        <circle class="dot" cx="${x(12)}" cy="${y(data[12])}" r="4"/>
         <text class="chart-tip" x="${x(12) - 8}" y="${y(data[12]) - 12}" text-anchor="end">${fmtCompact(data[12])}</text>`;
     } else {
       const bw = ((W - P.l - P.r) / 13) * 0.6;
       body = data.map((v, i) =>
-        `<rect class="bar" style="animation-delay:${i * 50}ms" x="${x(i) - bw / 2}" y="${y(v)}" width="${bw}" height="${H - P.b - y(v)}" rx="4" fill="url(#lineGrad)"/>`).join("") +
+        `<rect class="bar${i === 12 ? " last" : ""}" style="animation-delay:${i * 50}ms" x="${x(i) - bw / 2}" y="${y(v)}" width="${bw}" height="${H - P.b - y(v)}" rx="1"/>`).join("") +
         `<text class="chart-tip" x="${x(12)}" y="${y(data[12]) - 8}" text-anchor="middle">${fmtCompact(data[12])}</text>`;
     }
     const hover = `<g class="hover hidden"><line class="hover-line" y1="${P.t}" y2="${H - P.b}"/>
-      <rect class="hover-box" rx="8" width="118" height="42"/><text class="axis hv-m"></text><text class="chart-tip hv-v"></text></g>
+      <rect class="hover-box" rx="4" width="118" height="42"/><text class="axis hv-m"></text><text class="chart-tip hv-v"></text></g>
       <rect class="hover-zone" x="${P.l}" y="${P.t}" width="${W - P.l - P.r}" height="${H - P.t - P.b}"/>`;
     const host = $("#proj-chart");
     host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="12-month projection">${defs}${grid}${xl}${body}${hover}</svg>`;
@@ -677,20 +675,22 @@
     const R = 70, C = 2 * Math.PI * R;
     const total = r.followers || 1;
     let off = 0;
-    const arcs = r.plats.map((p) => {
+    const ranked = [...r.plats].sort((a, b) => b.followers - a.followers);
+    const shade = (p) => ["var(--accent)", "var(--s1)", "var(--s3)", "var(--s4)", "var(--s5)", "var(--s2)"][ranked.indexOf(p) % 6];
+    const arcs = ranked.map((p) => {
       const frac = p.followers / total;
-      const a = `<circle class="seg-arc" cx="90" cy="90" r="${R}" fill="none" stroke="${p.def.color}" stroke-width="22"
+      const a = `<circle class="seg-arc" cx="90" cy="90" r="${R}" fill="none" style="stroke:${shade(p)}" stroke-width="10"
         stroke-dasharray="0 ${C}" data-len="${Math.max(0, frac * C - 2)}" stroke-dashoffset="${-off}" transform="rotate(-90 90 90)"/>`;
       off += frac * C;
       return a;
     }).join("");
     $("#donut").innerHTML = `<svg width="180" height="180" viewBox="0 0 180 180">
-      <circle cx="90" cy="90" r="${R}" fill="none" stroke="var(--surface-2)" stroke-width="22"/>${arcs}
-      <text x="90" y="86" text-anchor="middle" fill="var(--text)" font-family="JetBrains Mono" font-weight="700" font-size="20">${fmtCompact(r.followers)}</text>
-      <text x="90" y="106" text-anchor="middle" fill="var(--muted)" font-size="11">total audience</text></svg>`;
+      <circle cx="90" cy="90" r="${R}" fill="none" style="stroke:var(--line)" stroke-width="10"/>${arcs}
+      <text class="donut-num" x="90" y="92" text-anchor="middle">${fmtCompact(r.followers)}</text>
+      <text class="donut-lbl" x="90" y="110" text-anchor="middle">audience</text></svg>`;
     setTimeout(() => $$("#donut .seg-arc").forEach((c) => c.setAttribute("stroke-dasharray", `${c.dataset.len} ${C}`)), 100);
-    $("#donut-legend").innerHTML = [...r.plats].sort((a, b) => b.followers - a.followers).map((p) =>
-      `<div class="legend-row"><span class="sw" style="background:${p.def.color}"></span>${p.def.name}<span class="pct">${fmtCompact(p.followers)} · ${((p.followers / total) * 100).toFixed(0)}%</span></div>`).join("");
+    $("#donut-legend").innerHTML = ranked.map((p) =>
+      `<div class="legend-row"><span class="sw" style="background:${shade(p)}"></span>${p.def.name}<span class="pct">${fmtCompact(p.followers)} · ${((p.followers / total) * 100).toFixed(0)}%</span></div>`).join("");
   }
 
   function renderFun(r) {
@@ -703,15 +703,15 @@
     const perMin = r.monthlyReach / (30 * 1440);
 
     const cards = [
-      ["🏟️", r.followers / 90000, (v) => v.toFixed(1) + "x", "Wembley Stadiums you could fill with your audience"],
-      ["🌍", r.monthlyReach, (v) => fmtCompact(v), beaten ? `monthly views, more than the population of ${beaten[0]}` : "monthly views, and growing toward Iceland's whole population"],
-      ["💰", adValue, (v) => money(v, true), "what brands would pay in ads to buy your monthly reach"],
-      ["⏳", attentionYears, (v) => v.toFixed(1) + " yrs", "of human attention spent on your content every month"],
-      ["🔗", chainKm, (v) => fmtCompact(v) + " km", `long if your followers held hands${chainKm > 42.2 ? ` (${(chainKm / 42.2).toFixed(0)} marathons)` : ""}`],
-      ["⚡", perMin, (v) => fmtCompact(v), "people watching you every single minute"],
+      ["Stadiums", r.followers / 90000, (v) => v.toFixed(1) + "x", "Wembley Stadiums you could fill with your audience"],
+      ["Monthly views", r.monthlyReach, (v) => fmtCompact(v), beaten ? `monthly views, more than the population of ${beaten[0]}` : "monthly views, and growing toward Iceland's whole population"],
+      ["Ad value", adValue, (v) => money(v, true), "what brands would pay in ads to buy your monthly reach"],
+      ["Attention", attentionYears, (v) => v.toFixed(1) + " yrs", "of human attention spent on your content every month"],
+      ["Human chain", chainKm, (v) => fmtCompact(v) + " km", `long if your followers held hands${chainKm > 42.2 ? ` (${(chainKm / 42.2).toFixed(0)} marathons)` : ""}`],
+      ["Per minute", perMin, (v) => fmtCompact(v), "people watching you every single minute"],
     ];
     $("#fun-grid").innerHTML = cards.map((c, i) =>
-      `<div class="fun" style="--fun-c:${["rgba(124,92,255,.3)", "rgba(34,211,238,.25)", "rgba(52,211,153,.25)", "rgba(251,191,36,.22)", "rgba(255,79,163,.25)", "rgba(124,92,255,.3)"][i]}"><div class="emoji">${c[0]}</div><div class="odo-lg" id="fun-${i}"></div><div class="fun-text">${esc(c[3])}</div></div>`).join("");
+      `<div class="fun"><span class="label">${c[0]}</span><div class="num-lg" id="fun-${i}"></div><div class="fun-text">${esc(c[3])}</div></div>`).join("");
     cards.forEach((c, i) => rollIn($("#fun-" + i), c[1], c[2], 200 + i * 120));
   }
 
@@ -749,7 +749,7 @@
   let heroTimer = null;
   function renderLogoStrip() {
     $("#logo-strip").innerHTML = Object.entries(PLATFORMS).map(([id, d]) =>
-      `<span title="${d.name}" onmouseenter="this.firstChild.style.fill='${d.color}'" onmouseleave="this.firstChild.style.fill=''">${logo(id)}</span>`).join("");
+      `<span title="${d.name}">${logo(id)}</span>`).join("");
   }
 
   // Plain-text media kit for pasting into emails / DMs to brands
@@ -780,13 +780,13 @@
     const text = mediaKit();
     try {
       await navigator.clipboard.writeText(text);
-      toast("Media kit copied. Paste it into your next brand email ✨");
+      toast("Media kit copied to clipboard");
     } catch {
       const ta = document.createElement("textarea");
       ta.value = text;
       document.body.appendChild(ta);
       ta.select();
-      try { document.execCommand("copy"); toast("Media kit copied ✨"); } catch { toast("Couldn't access the clipboard."); }
+      try { document.execCommand("copy"); toast("Media kit copied to clipboard"); } catch { toast("Couldn't access the clipboard."); }
       ta.remove();
     }
   }
